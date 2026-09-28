@@ -117,10 +117,16 @@ class WC_CamerPay_Gateway extends WC_Payment_Gateway {
     public function process_payment($order_id) {
         $order = wc_get_order($order_id);
 
+        $amount = (float) $order->get_total();
+        if ($amount <= 0) {
+            wc_add_notice('Erreur paiement CamerPay : montant invalide (0 XAF).', 'error');
+            return ['result' => 'failure'];
+        }
+
         $api = new WC_CamerPay_API($this->api_key, $this->testmode);
 
         $result = $api->initiate_payment([
-            'amount'                => (float) $order->get_total(),
+            'amount'                => $amount,
             'currency'              => $order->get_currency() ?: 'XAF',
             'customer_email'        => $order->get_billing_email(),
             'customer_phone'        => $order->get_billing_phone(),
