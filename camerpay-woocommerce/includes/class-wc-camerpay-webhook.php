@@ -52,12 +52,15 @@ class WC_CamerPay_Webhook {
         $callback_secret = $gateway_settings['callback_secret'] ?? '';
 
         if (empty($callback_secret)) {
-            // Fallback : si le marchand n'a pas configure de secret, on accepte
-            // mais on logge. PAS recommande en prod.
-            wc_get_logger()->warning('CamerPay webhook recu sans callback_secret configure', [
+            // Securite : on n'accepte PAS les webhooks non signes.
+            // Le marchand DOIT configurer un callback_secret dans son dashboard
+            // CamerPay > API & webhooks et dans WooCommerce > CamerPay.
+            wc_get_logger()->error('CamerPay webhook refusé : callback_secret non configure', [
                 'source' => 'camerpay',
                 'uuid'   => $uuid,
             ]);
+            status_header(401);
+            exit('Callback secret non configure. Rejete.');
         } else {
             $expected_data = $uuid . '|' . $invoice_id . '|' . $status . '|' . $amount;
             $expected_sig  = hash_hmac('sha256', $expected_data, $callback_secret);
